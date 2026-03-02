@@ -202,11 +202,16 @@ export default function Home() {
   const handleAcceptRide = async () => {
     if (!incomingRide) return;
     try {
-      const res = await fetch(`/api/drivers/respond-ride`, {
+      const API_BASE = getApiBase();
+      const res = await fetch(`${API_BASE}/api/drivers/respond-ride`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rideId: incomingRide.id, status: 'accepted' }),
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+      }
       const data = await res.json();
       if (data.success) {
         setActiveRide(incomingRide);
@@ -226,11 +231,16 @@ export default function Home() {
   const handleCompleteRide = async () => {
     if (!activeRide) return;
     try {
-      const res = await fetch(`/api/drivers/complete-ride`, {
+      const API_BASE = getApiBase();
+      const res = await fetch(`${API_BASE}/api/drivers/complete-ride`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rideId: activeRide.id }),
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+      }
       const data = await res.json();
       if (data.success) {
         setDriverEarnings(prev => prev + data.fare);
@@ -301,11 +311,16 @@ export default function Home() {
       }
       else if (driverAuthStep === 'otp') {
         if (otp.length < 6) { setError("Please enter 6-digit OTP"); return; }
-        const res = await fetch(`/api/auth/driver-auth`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, otp, action: 'verify_otp' }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+        }
         const data = await res.json();
         if (data.success) {
           setDriverAuthStep(data.actionRequired);
@@ -313,11 +328,16 @@ export default function Home() {
       }
       else if (driverAuthStep === 'set_password') {
         if (driverPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
-        const res = await fetch(`/api/auth/driver-auth`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, otp, password: driverPassword, action: 'set_password' }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+        }
         const data = await res.json();
         if (data.success) {
           setIsLoggedIn(true);
@@ -325,11 +345,16 @@ export default function Home() {
         } else setError(data.message || "Failed to set password");
       }
       else if (driverAuthStep === 'enter_password') {
-        const res = await fetch(`/api/auth/driver-auth`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, password: driverPassword, action: 'verify_password' }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+        }
         const data = await res.json();
         if (data.success) {
           setIsLoggedIn(true);
@@ -422,12 +447,16 @@ export default function Home() {
     try {
       console.log("[FETCH] Requesting fares...");
       setError(null);
-      const res = await fetch(`/api/ride/fare`, {
+      const API_BASE = getApiBase();
+      const res = await fetch(`${API_BASE}/api/ride/fare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pickup, destination, rideType, scheduledTime }),
       });
-      if (!res.ok) throw new Error("Server error");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+      }
       const data = await res.json();
       setFareData(data);
       setBookingStep(1);
@@ -453,7 +482,8 @@ export default function Home() {
       if (!pickupCoords) setPickupCoords(pCoords);
       if (!destinationCoords) setDestinationCoords(dCoords);
 
-      const res = await fetch(`/api/ride/request`, {
+      const API_BASE = getApiBase();
+      const res = await fetch(`${API_BASE}/api/ride/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -467,6 +497,10 @@ export default function Home() {
           scheduledTime: rideType === 'schedule' ? scheduledTime : null
         }),
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+      }
       const data = await res.json();
       if (data.success) {
         setCurrentRideId(data.rideId);
@@ -486,7 +520,12 @@ export default function Home() {
     if (bookingStep === 2 && currentRideId) {
       const checkAssignment = async () => {
         try {
-          const res = await fetch(`/api/admin/trips`);
+          const API_BASE = getApiBase();
+          const res = await fetch(`${API_BASE}/api/admin/trips`);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+          }
           const data = await res.json();
           if (data.success) {
             const myRide = data.trips.find((t: any) => t._id === currentRideId);
@@ -539,7 +578,12 @@ export default function Home() {
     if (userRole !== 'driver' && assignedRide && (bookingStep === 3 || bookingStep === 4)) {
       const checkCompletion = async () => {
         try {
-          const res = await fetch(`/api/admin/trips`);
+          const API_BASE = getApiBase();
+          const res = await fetch(`${API_BASE}/api/admin/trips`);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+          }
           const data = await res.json();
           if (data.success) {
             const myRide = data.trips.find((t: any) => t._id === assignedRide._id);
@@ -582,7 +626,12 @@ export default function Home() {
     if (userRole === 'driver' && isOnline && !activeRide) {
       const fetchRequests = async () => {
         try {
-          const res = await fetch(`/api/drivers/active-requests`);
+          const API_BASE = getApiBase();
+          const res = await fetch(`${API_BASE}/api/drivers/active-requests`);
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+          }
           const data = await res.json();
           if (data.success && data.requests && data.requests.length > 0) {
             const firstReq = data.requests[0];
@@ -613,11 +662,16 @@ export default function Home() {
     if (!activeRide) return;
     setDriverOtpError('');
     try {
-      const res = await fetch(`/api/drivers/verify-otp`, {
+      const API_BASE = getApiBase();
+      const res = await fetch(`${API_BASE}/api/drivers/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rideId: activeRide.id, otp: driverOtp })
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
+      }
       const data = await res.json();
       if (data.success) {
         setDriverOtpVerified(true);
