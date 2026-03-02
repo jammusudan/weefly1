@@ -46,7 +46,7 @@ export default function AdminDashboard() {
         if (!isAdminAuthenticated) return;
         const fetchStats = async () => {
             try {
-                const res = await fetch(`http://${window.location.hostname}:5000/api/admin/stats`);
+                const res = await fetch(`/api/admin/stats`);
                 const data = await res.json();
                 if (data.success) setStats(data.stats);
             } catch (err) {
@@ -279,14 +279,14 @@ function DriversTab() {
     }, []);
 
     const fetchDrivers = () => {
-        fetch(`http://${window.location.hostname}:5000/api/admin/drivers`)
+        fetch(`/api/admin/drivers`)
             .then(res => res.json())
             .then(data => { if (data.success) setDrivers(data.drivers); });
     };
 
     const handleKycStatus = async (id: string, status: string) => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/api/admin/kyc/${id}`, {
+            const res = await fetch(`/api/admin/kyc/${id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -297,7 +297,7 @@ function DriversTab() {
 
     const handleSuspension = async (id: string, isSuspended: boolean) => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/api/admin/drivers/${id}/status`, {
+            const res = await fetch(`/api/admin/drivers/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isSuspended })
@@ -396,7 +396,7 @@ function PricingTab() {
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        fetch(`http://${window.location.hostname}:5000/api/admin/config`)
+        fetch(`/api/admin/config`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.config) {
@@ -409,7 +409,7 @@ function PricingTab() {
     const updatePlatformFee = async () => {
         setIsUpdating(true);
         try {
-            await fetch(`http://${window.location.hostname}:5000/api/admin/config`, {
+            await fetch(`/api/admin/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'platform_fee', value: platformFee, description: 'Platform Commission %' })
@@ -491,14 +491,14 @@ function TripsTab() {
     }, []);
 
     const fetchTrips = () => {
-        fetch(`http://${window.location.hostname}:5000/api/admin/trips`)
+        fetch(`/api/admin/trips`)
             .then(res => res.json())
             .then(data => { if (data.success) setTrips(data.trips); });
     };
 
     const handleTripAction = async (id: string, action: 'cancel' | 'refund') => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/api/admin/trips/${id}/refund`, {
+            const res = await fetch(`/api/admin/trips/${id}/refund`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action })
@@ -575,14 +575,14 @@ function ReportsTab() {
     }, []);
 
     const fetchReports = () => {
-        fetch(`http://${window.location.hostname}:5000/api/admin/reports`)
+        fetch(`/api/admin/reports`)
             .then(res => res.json())
             .then(data => { if (data.success) setReports(data.reports); });
     };
 
     const resolveReport = async (id: string) => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/api/admin/reports/${id}`, {
+            const res = await fetch(`/api/admin/reports/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'resolved' })
