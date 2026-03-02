@@ -3,7 +3,11 @@ import dotenv from 'dotenv';
 import dns from 'dns';
 
 // Fix for Node.js SRV lookup issues on some networks
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+try {
+    dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch (e) {
+    console.warn('Warning: Could not set custom DNS servers. Default system DNS will be used.');
+}
 
 dotenv.config();
 

@@ -30,9 +30,17 @@ app.get('/health', (req, res) => {
 const startServer = async () => {
     try {
         await dbConnect();
-        app.listen(Number(PORT), '0.0.0.0', () => {
+        const server = app.listen(Number(PORT), () => {
             console.log(`[SERVER] Weefly Backend LIVE on http://localhost:${PORT}`);
             console.log(`[SERVER] Health check: http://localhost:${PORT}/health`);
+        });
+
+        server.on('error', (err: any) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`[ERROR] Port ${PORT} is already in use. Please kill the process using it or choose another port.`);
+            } else {
+                console.error('[ERROR] Server failure:', err);
+            }
         });
     } catch (error) {
         console.error('Failed to start server:', error);

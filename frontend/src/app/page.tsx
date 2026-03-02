@@ -216,8 +216,9 @@ export default function Home() {
           setDriverLocation([pickupCoords[0] - 0.02, pickupCoords[1] - 0.02]);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Accept error:", err);
+      showToast(`Accept error: ${err.message || 'Server Unreachable'}`, "info");
     }
   };
 
@@ -244,8 +245,9 @@ export default function Home() {
         setDriverLocation(null);
         setTrackProgress(0);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Complete error:", err);
+      showToast(`Complete error: ${err.message || 'Server Unreachable'}`, "info");
     }
   };
 
@@ -333,9 +335,9 @@ export default function Home() {
           setUser(data.user);
         } else setError(data.message || "Incorrect password");
       }
-    } catch (err) {
-      console.error(err);
-      setError("Server Unreachable.");
+    } catch (err: any) {
+      console.error("Driver Login error:", err);
+      setError(`Server Unreachable: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -366,9 +368,9 @@ export default function Home() {
         } else {
           setError(data.message || data.error || "Failed to send OTP");
         }
-      } catch (err) {
-        console.error(err);
-        setError("Server Unreachable. Please run 'npm run dev' from the root project folder.");
+      } catch (err: any) {
+        console.error("OTP send error:", err);
+        setError(`Server Unreachable (${err.message}). Please run 'npm run dev' from the root project folder.`);
       } finally {
         setIsLoading(false);
       }
@@ -392,9 +394,9 @@ export default function Home() {
         } else {
           setError(data.message || data.error || "OTP verification failed.");
         }
-      } catch (err) {
-        console.error(err);
-        setError("Server Unreachable. Please run 'npm run dev' from the root project folder.");
+      } catch (err: any) {
+        console.error("OTP verify error:", err);
+        setError(`Server Unreachable (${err.message}). Please run 'npm run dev' from the root project folder.`);
       } finally {
         setIsLoading(false);
       }
@@ -407,6 +409,7 @@ export default function Home() {
     if (!pickup || !destination) return;
     setIsLoading(true);
     try {
+      console.log("[FETCH] Requesting fares...");
       setError(null);
       const res = await fetch(`/api/ride/fare`, {
         method: 'POST',
@@ -417,9 +420,9 @@ export default function Home() {
       const data = await res.json();
       setFareData(data);
       setBookingStep(1);
-    } catch (err) {
-      console.error(err);
-      setError("Server Unreachable. Please run 'npm run dev' in the root project folder.");
+    } catch (err: any) {
+      console.error("Get Fares error:", err);
+      setError(`Server Unreachable (${err.message}). Please run 'npm run dev' in the root project folder.`);
     } finally {
       setIsLoading(false);
     }
