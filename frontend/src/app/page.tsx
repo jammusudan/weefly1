@@ -41,6 +41,7 @@ const Map = dynamic(() => import("@/components/Map"), {
 import { SuggestionsDropdown } from "@/components/SuggestionsDropdown";
 import { formatINR } from "@/lib/format";
 import { Currency } from "@/components/Currency";
+import { getApiBase } from "@/lib/api";
 
 export default function Home() {
   const [pickup, setPickup] = useState("");
@@ -357,11 +358,16 @@ export default function Home() {
       setIsLoading(true);
       try {
         setError(null);
-        const res = await fetch(`/api/auth/otp`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, action: 'send' }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}...`);
+        }
         const data = await res.json();
         if (data.success) {
           setWaitingForOtp(true);
@@ -382,11 +388,16 @@ export default function Home() {
       setIsLoading(true);
       try {
         setError(null);
-        const res = await fetch(`/api/auth/otp`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, otp, action: 'verify' }),
         });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}...`);
+        }
         const data = await res.json();
         if (data.success) {
           setIsLoggedIn(true);

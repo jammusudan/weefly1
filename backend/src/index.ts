@@ -22,8 +22,22 @@ app.use('/api/ride', rideRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', message: 'API Proxy is working' });
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Weefly Backend is running' });
+});
+
+// Global Error Handler for JSON
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[ERROR] Unhandled:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
 
 // Connect to Database and Start Server
