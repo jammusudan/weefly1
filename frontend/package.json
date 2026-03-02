@@ -1,0 +1,37 @@
+{
+  "name": "weefly-cab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@genkit-ai/googleai": "^1.28.0",
+    "@types/leaflet": "^1.9.21",
+    "clsx": "latest",
+    "framer-motion": "latest",
+    "genkit": "^1.29.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "latest",
+    "mongoose": "^9.2.2",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-leaflet": "^5.0.0",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "^10.4.18",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.4.1",
+    "typescript": "latest"
+  }
+}

@@ -1,0 +1,23 @@
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+dotenv.config();
+const MONGODB_URI = process.env.MONGODB_URI;
+const dbConnect = async () => {
+    try {
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+        });
+        console.log('MongoDB connected successfully');
+        return true;
+    }
+    catch (error) {
+        console.error('Core Message: MongoDB connection failed.');
+        console.error('Details:', error);
+        console.warn('Warning: Server will start without database connection. Some features may not work.');
+        return false;
+    }
+};
+export default dbConnect;
+//# sourceMappingURL=mongodb.js.map
