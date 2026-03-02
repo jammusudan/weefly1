@@ -30,7 +30,7 @@ app.get('/health', (req, res) => {
 const startServer = async () => {
     try {
         await dbConnect();
-        const server = app.listen(Number(PORT), () => {
+        const server = app.listen(Number(PORT), '127.0.0.1', () => {
             console.log(`[SERVER] Weefly Backend LIVE on http://localhost:${PORT}`);
             console.log(`[SERVER] Health check: http://localhost:${PORT}/health`);
         });
