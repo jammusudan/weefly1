@@ -3,9 +3,11 @@ export const getApiBase = () => {
         const hostname = window.location.hostname;
 
         // In development, hit the backend directly on port 5005.
-        // This ensures whether using localhost, 127.0.0.1, or LAN IP, the frontend always finds its backend.
+        // We prefer 127.0.0.1 over localhost to avoid IPv6/IPv4 resolution issues on Windows.
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
-            return `http://${hostname}:5005`;
+            // If the user is on localhost, force 127.0.0.1 for the backend call
+            const targetHost = (hostname === 'localhost') ? '127.0.0.1' : hostname;
+            return `http://${targetHost}:5005`;
         }
 
         const override = localStorage.getItem('API_URL');

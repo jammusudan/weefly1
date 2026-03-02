@@ -272,8 +272,9 @@ export default function Home() {
   const handleUpdateProfile = async () => {
     if (!user) return;
     setIsLoading(true);
+    const API_BASE = getApiBase();
     try {
-      const res = await fetch(`/api/drivers/profile/${user._id}`, {
+      const res = await fetch(`${API_BASE}/api/drivers/profile/${user._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: driverProfileName, vehicleNumber: driverVehicleNum }),
@@ -299,7 +300,8 @@ export default function Home() {
     try {
       if (driverAuthStep === 'phone') {
         if (!phone) { setError("Please enter mobile number"); return; }
-        const res = await fetch(`/api/auth/otp`, {
+        const API_BASE = getApiBase();
+        const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, action: 'send' }),

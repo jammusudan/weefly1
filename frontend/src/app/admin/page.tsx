@@ -24,6 +24,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { formatINR } from "@/lib/format";
 import { Currency } from "@/components/Currency";
+import { getApiBase } from "@/lib/api";
 
 const SIDEBAR_ITEMS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -46,7 +47,8 @@ export default function AdminDashboard() {
         if (!isAdminAuthenticated) return;
         const fetchStats = async () => {
             try {
-                const res = await fetch(`/api/admin/stats`);
+                const API_BASE = getApiBase();
+                const res = await fetch(`${API_BASE}/api/admin/stats`);
                 const data = await res.json();
                 if (data.success) setStats(data.stats);
             } catch (err) {
@@ -279,14 +281,16 @@ function DriversTab() {
     }, []);
 
     const fetchDrivers = () => {
-        fetch(`/api/admin/drivers`)
+        const API_BASE = getApiBase();
+        fetch(`${API_BASE}/api/admin/drivers`)
             .then(res => res.json())
             .then(data => { if (data.success) setDrivers(data.drivers); });
     };
 
     const handleKycStatus = async (id: string, status: string) => {
         try {
-            const res = await fetch(`/api/admin/kyc/${id}`, {
+            const API_BASE = getApiBase();
+            const res = await fetch(`${API_BASE}/api/admin/kyc/${id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -297,7 +301,8 @@ function DriversTab() {
 
     const handleSuspension = async (id: string, isSuspended: boolean) => {
         try {
-            const res = await fetch(`/api/admin/drivers/${id}/status`, {
+            const API_BASE = getApiBase();
+            const res = await fetch(`${API_BASE}/api/admin/drivers/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isSuspended })
@@ -396,7 +401,8 @@ function PricingTab() {
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        fetch(`/api/admin/config`)
+        const API_BASE = getApiBase();
+        fetch(`${API_BASE}/api/admin/config`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.config) {
@@ -409,7 +415,8 @@ function PricingTab() {
     const updatePlatformFee = async () => {
         setIsUpdating(true);
         try {
-            await fetch(`/api/admin/config`, {
+            const API_BASE = getApiBase();
+            await fetch(`${API_BASE}/api/admin/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'platform_fee', value: platformFee, description: 'Platform Commission %' })
@@ -491,14 +498,16 @@ function TripsTab() {
     }, []);
 
     const fetchTrips = () => {
-        fetch(`/api/admin/trips`)
+        const API_BASE = getApiBase();
+        fetch(`${API_BASE}/api/admin/trips`)
             .then(res => res.json())
             .then(data => { if (data.success) setTrips(data.trips); });
     };
 
     const handleTripAction = async (id: string, action: 'cancel' | 'refund') => {
         try {
-            const res = await fetch(`/api/admin/trips/${id}/refund`, {
+            const API_BASE = getApiBase();
+            const res = await fetch(`${API_BASE}/api/admin/trips/${id}/refund`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action })
@@ -575,14 +584,16 @@ function ReportsTab() {
     }, []);
 
     const fetchReports = () => {
-        fetch(`/api/admin/reports`)
+        const API_BASE = getApiBase();
+        fetch(`${API_BASE}/api/admin/reports`)
             .then(res => res.json())
             .then(data => { if (data.success) setReports(data.reports); });
     };
 
     const resolveReport = async (id: string) => {
         try {
-            const res = await fetch(`/api/admin/reports/${id}`, {
+            const API_BASE = getApiBase();
+            const res = await fetch(`${API_BASE}/api/admin/reports/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'resolved' })
