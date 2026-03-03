@@ -21,9 +21,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/ride', rideRoutes);
 app.use('/api/drivers', driverRoutes);
-// Admin dashboard & management APIs
 app.use('/api/admin', adminRoutes);
-// 🔴 Admin login (MOST IMPORTANT)
 app.use('/api/admin-auth', adminAuthRoutes);
 /* =======================
    HEALTH CHECKS
@@ -33,6 +31,15 @@ app.get('/health', (req, res) => {
 });
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'API is working' });
+});
+/* =======================
+   ROOT CHECK (ADDED)
+======================= */
+app.get('/', (req, res) => {
+    res.json({
+        status: 'OK',
+        message: 'Weefly Backend API is running'
+    });
 });
 /* =======================
    GLOBAL ERROR HANDLER

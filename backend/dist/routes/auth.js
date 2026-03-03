@@ -7,8 +7,9 @@ const FIXED_OTP = '123456';
 const otpStore = new Map();
 /**
  * Helper to verify OTP (Checks fixed fallbacks and in-memory store)
+ * @param deleteOnSuccess - If true, removes the OTP from store after successful verification.
  */
-const verifyOtpInternal = (phoneNumber, receivedOtp) => {
+const verifyOtpInternal = (phoneNumber, receivedOtp, deleteOnSuccess = true) => {
     const trimmedOtp = receivedOtp?.toString().trim();
     if (!trimmedOtp) {
         console.log(`[AUTH-VERIFY] FAILED: Empty OTP for ${phoneNumber}`);
@@ -18,10 +19,8 @@ const verifyOtpInternal = (phoneNumber, receivedOtp) => {
     const isFallback = trimmedOtp === '123456' || trimmedOtp === '1234';
     const isValid = isFallback || trimmedOtp === storedOtp;
     console.log(`[AUTH-VERIFY] Phone: ${phoneNumber}, Received: "${receivedOtp}", Stored: "${storedOtp}", Valid: ${isValid}`);
-    // 🔥 SECURITY: Clear OTP after verification attempt (successful or not)
-    // Actually only clear on success to allow retries?
-    // User said "leftover OTP" so let's clear it on success.
-    if (isValid) {
+    // 🔥 SECURITY: Clear OTP only if requested (usually on the final terminal step)
+    if (isValid && deleteOnSuccess) {
         otpStore.delete(phoneNumber);
     }
     return isValid;
@@ -81,7 +80,7 @@ router.post('/driver-auth', async (req, res) => {
         let user = await User.findOne({ phoneNumber });
         // 🔐 VERIFY OTP
         if (action === 'verify_otp') {
-            if (!verifyOtpInternal(phoneNumber, otp)) {
+            if (!verifyOtpInternal(phoneNumber, otp, false)) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
             if (!user) {

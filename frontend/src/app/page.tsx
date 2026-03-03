@@ -328,19 +328,22 @@ export default function Home() {
         const data = await res.json();
         if (data.success) {
           setDriverAuthStep(data.actionRequired);
-          setOtp(""); // Clear on success too
+          // 🛑 Stop clearing OTP here; we need it for the next step (set_password)
+          // setOtp(""); 
         } else {
           setOtp("");
           setError(data.message || "Invalid OTP");
         }
       }
       else if (driverAuthStep === 'set_password') {
+        const trimmedOtp = otp.trim();
+        if (trimmedOtp.length < 6) { setError("Please enter the 6-digit OTP"); return; }
         if (driverPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
         const API_BASE = getApiBase();
         const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: phone, otp, password: driverPassword, action: 'set_password' }),
+          body: JSON.stringify({ phoneNumber: phone, otp: trimmedOtp, password: driverPassword, action: 'set_password' }),
         });
         if (!res.ok) {
           const text = await res.text();
@@ -805,18 +808,34 @@ export default function Home() {
                 )}
                 {userRole === 'driver' && driverAuthStep === 'set_password' && (
                   <div className="space-y-4">
-                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Create Password</p>
-                    <div className="relative group">
+                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify & Create Password</p>
+                    <div className="flex gap-2 justify-center relative mb-4">
+                      {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="w-10 h-14 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-xl font-bold text-white group-focus-within:border-accent">
+                          {otp[i - 1] ? '•' : ''}
+                        </div>
+                      ))}
                       <input
                         autoFocus
                         type="password"
-                        placeholder="Min 6 characters"
+                        placeholder="Re-enter OTP"
+                        value={otp}
+                        maxLength={6}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                    <div className="relative group">
+                      <input
+                        type="password"
+                        placeholder="Create New Password (Min 6)"
                         value={driverPassword}
                         onChange={(e) => setDriverPassword(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                         className="w-full bg-black/40 border border-white/5 h-16 px-6 rounded-[24px] focus:border-accent focus:ring-1 focus:ring-accent outline-none font-bold text-white transition-all"
                       />
                     </div>
+                    <p className="text-[10px] text-white/40 text-center uppercase tracking-tighter">Enter the same OTP for extra security</p>
                   </div>
                 )}
                 {userRole === 'driver' && driverAuthStep === 'enter_password' && (
