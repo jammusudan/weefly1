@@ -312,21 +312,27 @@ export default function Home() {
         } else setError(data.message || "Failed to send OTP");
       }
       else if (driverAuthStep === 'otp') {
-        if (otp.length < 6) { setError("Please enter 6-digit OTP"); return; }
+        const trimmedOtp = otp.trim();
+        if (trimmedOtp.length < 6) { setError("Please enter 6-digit OTP"); return; }
         const API_BASE = getApiBase();
         const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: phone, otp, action: 'verify_otp' }),
+          body: JSON.stringify({ phoneNumber: phone, otp: trimmedOtp, action: 'verify_otp' }),
         });
         if (!res.ok) {
           const text = await res.text();
+          setOtp(""); // Clear on error
           throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
         }
         const data = await res.json();
         if (data.success) {
           setDriverAuthStep(data.actionRequired);
-        } else setError(data.message || "Invalid OTP");
+          setOtp(""); // Clear on success too
+        } else {
+          setOtp("");
+          setError(data.message || "Invalid OTP");
+        }
       }
       else if (driverAuthStep === 'set_password') {
         if (driverPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
@@ -408,7 +414,8 @@ export default function Home() {
         setIsLoading(false);
       }
     } else {
-      if (otp.length < 6) {
+      const trimmedOtp = otp.trim();
+      if (trimmedOtp.length < 6) {
         setError("Please enter the 6-digit OTP");
         return;
       }
@@ -419,17 +426,20 @@ export default function Home() {
         const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: phone, otp, action: 'verify' }),
+          body: JSON.stringify({ phoneNumber: phone, otp: trimmedOtp, action: 'verify' }),
         });
         if (!res.ok) {
           const text = await res.text();
+          setOtp("");
           throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}...`);
         }
         const data = await res.json();
         if (data.success) {
           setIsLoggedIn(true);
           setUser(data.user);
+          setOtp("");
         } else {
+          setOtp("");
           setError(data.message || data.error || "OTP verification failed.");
         }
       } catch (err: any) {
@@ -728,15 +738,27 @@ export default function Home() {
           >
             {/* Role Switcher */}
             <div className="flex p-2 gap-1 bg-black/40 rounded-t-[48px]">
-              {roles.map(r => (r.id === (userRole || 'customer') ? (
-                <button key={r.id} onClick={() => setUserRole(r.id)} className="flex-grow py-3 px-6 rounded-3xl bg-accent text-primary font-black text-[10px] uppercase tracking-wider transition-all">
-                  {r.label}
-                </button>
-              ) : (
-                <button key={r.id} onClick={() => setUserRole(r.id)} className="flex-grow py-3 px-6 rounded-3xl text-white/40 hover:text-white font-bold text-[10px] uppercase tracking-wider transition-all">
-                  {r.label}
-                </button>
-              )))}
+              {roles.map(r => {
+                const isActive = r.id === (userRole || 'customer');
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => {
+                      if (!isActive) {
+                        setUserRole(r.id);
+                        setOtp("");
+                        setWaitingForOtp(false);
+                        setDriverAuthStep('phone');
+                        setError(null);
+                      }
+                    }}
+                    className={`flex-grow py-3 px-6 rounded-3xl font-black text-[10px] uppercase tracking-wider transition-all ${isActive ? 'bg-accent text-primary' : 'text-white/40 hover:text-white font-bold'
+                      }`}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="p-10 text-center space-y-8">

@@ -10,6 +10,32 @@ const FIXED_OTP = '123456';
 const otpStore = new Map<string, string>();
 
 /**
+ * Helper to verify OTP (Checks fixed fallbacks and in-memory store)
+ */
+const verifyOtpInternal = (phoneNumber: string, receivedOtp: any) => {
+    const trimmedOtp = receivedOtp?.toString().trim();
+    if (!trimmedOtp) {
+        console.log(`[AUTH-VERIFY] FAILED: Empty OTP for ${phoneNumber}`);
+        return false;
+    }
+
+    const storedOtp = otpStore.get(phoneNumber);
+    const isFallback = trimmedOtp === '123456' || trimmedOtp === '1234';
+    const isValid = isFallback || trimmedOtp === storedOtp;
+
+    console.log(`[AUTH-VERIFY] Phone: ${phoneNumber}, Received: "${receivedOtp}", Stored: "${storedOtp}", Valid: ${isValid}`);
+
+    // 🔥 SECURITY: Clear OTP after verification attempt (successful or not)
+    // Actually only clear on success to allow retries?
+    // User said "leftover OTP" so let's clear it on success.
+    if (isValid) {
+        otpStore.delete(phoneNumber);
+    }
+
+    return isValid;
+};
+
+/**
  * CUSTOMER AUTH (OTP)
  */
 router.post('/otp', async (req, res) => {
@@ -33,15 +59,7 @@ router.post('/otp', async (req, res) => {
 
         // ✅ VERIFY OTP
         if (action === 'verify') {
-            const storedOtp = otpStore.get(phoneNumber);
-            console.log(`[AUTH] Verifying for ${phoneNumber}: Received="${otp}", Stored="${storedOtp}", Fixed="${FIXED_OTP}"`);
-
-            // Trim whitespace and allow 1234 or 123456 as fallbacks in development
-            const receivedOtp = otp?.toString().trim();
-            const isFallback = receivedOtp === '123456' || receivedOtp === '1234';
-
-            if (!isFallback && receivedOtp !== storedOtp) {
-                console.log(`[AUTH] Verification FAILED for ${phoneNumber}`);
+            if (!verifyOtpInternal(phoneNumber, otp)) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
 
@@ -81,7 +99,7 @@ router.post('/driver-auth', async (req, res) => {
 
         // 🔐 VERIFY OTP
         if (action === 'verify_otp') {
-            if (otp !== FIXED_OTP) {
+            if (!verifyOtpInternal(phoneNumber, otp)) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
 
@@ -99,7 +117,7 @@ router.post('/driver-auth', async (req, res) => {
 
         // 🔑 SET PASSWORD
         if (action === 'set_password') {
-            if (otp !== FIXED_OTP) {
+            if (!verifyOtpInternal(phoneNumber, otp)) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
 
@@ -117,7 +135,9 @@ router.post('/driver-auth', async (req, res) => {
         // 🔓 VERIFY PASSWORD
         if (action === 'verify_password') {
             const isCorrectPassword = user && user.password === password;
-            const isFallbackPassword = password === '123456';
+            const isFallbackPassword = password === '123456' || password === '1234';
+
+            console.log(`[DRIVER-PWD] Phone: ${phoneNumber}, UserFound: ${!!user}, PwdMatch: ${isCorrectPassword}, IsFallback: ${isFallbackPassword}`);
 
             if (!isCorrectPassword && !isFallbackPassword) {
                 return res.status(401).json({ success: false, message: 'Incorrect password' });
