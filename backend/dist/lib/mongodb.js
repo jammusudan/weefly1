@@ -1,9 +1,18 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import dns from 'dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+// Fix for Node.js SRV lookup issues on some networks
+try {
+    dns.setServers(['8.8.8.8', '8.8.4.4']);
+}
+catch (e) {
+    console.warn('Warning: Could not set custom DNS servers. Default system DNS will be used.');
+}
 dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in the environment variables');
+}
 const dbConnect = async () => {
     try {
         await mongoose.connect(MONGODB_URI, {

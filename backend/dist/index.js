@@ -1,61 +1,64 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
 import dbConnect from './lib/mongodb.js';
 import authRoutes from './routes/auth.js';
 import rideRoutes from './routes/rides.js';
 import driverRoutes from './routes/drivers.js';
 import adminRoutes from './routes/admin.js';
-
+import adminAuthRoutes from './routes/adminAuth.js';
 dotenv.config();
-
 const app = express();
-
-/**
- * Render will provide PORT automatically
- * Local run na 10000 use aagum
- */
 const PORT = process.env.PORT || 10000;
-
 /* =======================
    MIDDLEWARE
 ======================= */
 app.use(cors());
 app.use(express.json());
-
 /* =======================
    ROUTES
 ======================= */
 app.use('/api/auth', authRoutes);
 app.use('/api/ride', rideRoutes);
 app.use('/api/drivers', driverRoutes);
+// Admin dashboard & management APIs
 app.use('/api/admin', adminRoutes);
-
+// 🔴 Admin login (MOST IMPORTANT)
+app.use('/api/admin-auth', adminAuthRoutes);
 /* =======================
-   HEALTH CHECK (MANDATORY)
+   HEALTH CHECKS
 ======================= */
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Weefly Backend is running'
-  });
+    res.json({ status: 'OK', message: 'Weefly Backend is running' });
 });
-
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', message: 'API is working' });
+});
+/* =======================
+   GLOBAL ERROR HANDLER
+======================= */
+app.use((err, req, res, next) => {
+    console.error('[ERROR]', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error',
+    });
+});
 /* =======================
    START SERVER
 ======================= */
 const startServer = async () => {
-  try {
-    await dbConnect();
-    console.log('MongoDB connected');
-  } catch (error) {
-    console.error('MongoDB connection failed:', error);
-  }
-
-  app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+    try {
+        await dbConnect();
+        app.listen(Number(PORT), '0.0.0.0', () => {
+            console.log(`[SERVER] Weefly Backend LIVE on port ${PORT}`);
+            console.log(`[SERVER] Health check → /health`);
+        });
+    }
+    catch (error) {
+        console.error('[FATAL] Server failed to start:', error);
+        process.exit(1);
+    }
 };
-
 startServer();
+//# sourceMappingURL=index.js.map

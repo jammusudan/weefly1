@@ -2,12 +2,12 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-import dbConnect from './lib/mongodb';
-import authRoutes from './routes/auth';
-import rideRoutes from './routes/rides';
-import driverRoutes from './routes/drivers';
-import adminRoutes from './routes/admin';
-import adminAuthRoutes from './routes/adminAuth';
+import dbConnect from './lib/mongodb.js';
+import authRoutes from './routes/auth.js';
+import rideRoutes from './routes/rides.js';
+import driverRoutes from './routes/drivers.js';
+import adminRoutes from './routes/admin.js';
+import adminAuthRoutes from './routes/adminAuth.js';
 
 dotenv.config();
 
@@ -37,41 +37,41 @@ app.use('/api/admin-auth', adminAuthRoutes);
    HEALTH CHECKS
 ======================= */
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'OK', message: 'Weefly Backend is running' });
+    res.json({ status: 'OK', message: 'Weefly Backend is running' });
 });
 
 app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'OK', message: 'API is working' });
+    res.json({ status: 'OK', message: 'API is working' });
 });
 
 /* =======================
    GLOBAL ERROR HANDLER
 ======================= */
 app.use(
-  (err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('[ERROR]', err);
-    res.status(err.status || 500).json({
-      success: false,
-      message: err.message || 'Internal Server Error',
-    });
-  }
+    (err: any, req: Request, res: Response, next: NextFunction) => {
+        console.error('[ERROR]', err);
+        res.status(err.status || 500).json({
+            success: false,
+            message: err.message || 'Internal Server Error',
+        });
+    }
 );
 
 /* =======================
    START SERVER
 ======================= */
 const startServer = async () => {
-  try {
-    await dbConnect();
+    try {
+        await dbConnect();
 
-    app.listen(Number(PORT), '0.0.0.0', () => {
-      console.log(`[SERVER] Weefly Backend LIVE on port ${PORT}`);
-      console.log(`[SERVER] Health check → /health`);
-    });
-  } catch (error) {
-    console.error('[FATAL] Server failed to start:', error);
-    process.exit(1);
-  }
+        app.listen(Number(PORT), '0.0.0.0', () => {
+            console.log(`[SERVER] Weefly Backend LIVE on port ${PORT}`);
+            console.log(`[SERVER] Health check → /health`);
+        });
+    } catch (error) {
+        console.error('[FATAL] Server failed to start:', error);
+        process.exit(1);
+    }
 };
 
 startServer();

@@ -8,10 +8,10 @@ router.post('/otp', async (req, res) => {
         const { phoneNumber, otp, action } = req.body;
         console.log(`[AUTH] Action: ${action}, Phone: ${phoneNumber}, OTP: ${otp}`);
         if (action === 'send') {
-            const generatedOtp = '123456';
+            const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
             otpStore.set(phoneNumber, generatedOtp);
             console.log(`[AUTH] Set OTP for ${phoneNumber}: ${generatedOtp}`);
-            return res.json({ success: true, message: 'OTP sent successfully. Demo OTP is 123456.' });
+            return res.json({ success: true, message: 'OTP sent successfully.' });
         }
         if (action === 'verify') {
             const storedOtp = otpStore.get(phoneNumber);
