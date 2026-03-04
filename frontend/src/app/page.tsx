@@ -749,9 +749,6 @@ export default function Home() {
                     onClick={() => {
                       if (!isActive) {
                         setUserRole(r.id);
-                        setOtp("");
-                        setWaitingForOtp(false);
-                        setDriverAuthStep('phone');
                         setError(null);
                       }
                     }}
