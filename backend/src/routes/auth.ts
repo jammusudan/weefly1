@@ -67,18 +67,12 @@ router.post('/otp', async (req, res) => {
             let user = await User.findOne({ phoneNumber });
             if (!user) {
                 user = await User.create({ phoneNumber, role: 'user' });
-                return res.json({ success: true, user, actionRequired: 'set_password' });
             }
 
-            if (!user.password) {
-                return res.json({ success: true, user, actionRequired: 'set_password' });
-            }
-
-            console.log(`[AUTH] OTP verified for existing user ${user._id}. Action required: enter_password`);
+            console.log(`[AUTH] OTP verified for user ${user._id}. Logging in immediately.`);
             return res.json({
                 success: true,
                 user,
-                actionRequired: 'enter_password',
                 message: 'OTP verified successfully',
             });
         }
@@ -157,14 +151,10 @@ router.post('/driver-auth', async (req, res) => {
 
             if (!user) {
                 user = await User.create({ phoneNumber, role: 'driver' });
-                return res.json({ success: true, user, actionRequired: 'set_password' });
             }
 
-            if (!user.password) {
-                return res.json({ success: true, user, actionRequired: 'set_password' });
-            }
-
-            return res.json({ success: true, user, actionRequired: 'enter_password' });
+            console.log(`[DRIVER-AUTH] OTP verified for driver ${user._id}. Logging in immediately.`);
+            return res.json({ success: true, user });
         }
 
         // 🔑 SET PASSWORD

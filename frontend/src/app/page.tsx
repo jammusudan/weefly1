@@ -331,9 +331,13 @@ export default function Home() {
         }
         const data = await res.json();
         if (data.success) {
-          setDriverAuthStep(data.actionRequired);
-          // 🛑 Stop clearing OTP here; we need it for the next step (set_password)
-          // setOtp(""); 
+          if (data.user) {
+            setIsLoggedIn(true);
+            setUser(data.user);
+            showToast("Login Successful", "success");
+          } else if (data.actionRequired) {
+            setDriverAuthStep(data.actionRequired);
+          }
         } else {
           setOtp("");
           setError(data.message || "Invalid OTP");
@@ -418,7 +422,13 @@ export default function Home() {
         });
         const data = await res.json();
         if (data.success) {
-          setCustomerAuthStep(data.actionRequired);
+          if (data.user) {
+            setIsLoggedIn(true);
+            setUser(data.user);
+            showToast("Login Successful", "success");
+          } else if (data.actionRequired) {
+            setCustomerAuthStep(data.actionRequired);
+          }
         } else {
           setOtp("");
           setError(data.message || "Invalid OTP");
