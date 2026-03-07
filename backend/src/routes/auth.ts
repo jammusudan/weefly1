@@ -66,7 +66,7 @@ router.post('/otp', async (req, res) => {
 
             let user = await User.findOne({ phoneNumber });
             if (!user) {
-                user = await User.create({ phoneNumber, role: 'customer' });
+                user = await User.create({ phoneNumber, role: 'user' });
                 return res.json({ success: true, user, actionRequired: 'set_password' });
             }
 
@@ -96,7 +96,7 @@ router.post('/otp', async (req, res) => {
             }
 
             user.password = password;
-            user.role = 'customer';
+            user.role = 'user';
             await user.save();
 
             return res.json({ success: true, user, message: 'Password set successfully' });
