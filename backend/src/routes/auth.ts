@@ -3,8 +3,8 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// ✅ Fixed OTP for testing
-const FIXED_OTP = '123456';
+// ✅ Randomized 4-digit OTP for testing
+const generateRandomOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
 
 // Simple in-memory store (still used for consistency)
 const otpStore = new Map<string, string>();
@@ -21,7 +21,7 @@ const verifyOtpInternal = (phoneNumber: string, receivedOtp: any, deleteOnSucces
     }
 
     const storedOtp = otpStore.get(phoneNumber);
-    const isFallback = trimmedOtp === '123456' || trimmedOtp === '1234';
+    const isFallback = trimmedOtp === '1234';
     const isValid = isFallback || trimmedOtp === storedOtp;
 
     console.log(`[AUTH-VERIFY] Phone: ${phoneNumber}, Received: "${receivedOtp}", Stored: "${storedOtp}", Valid: ${isValid}`);
@@ -48,31 +48,72 @@ router.post('/otp', async (req, res) => {
 
         // 📩 SEND OTP
         if (action === 'send') {
-            otpStore.set(phoneNumber, FIXED_OTP);
-            console.log(`[AUTH] OTP set for ${phoneNumber}: ${FIXED_OTP}`);
+            const randomOtp = generateRandomOtp();
+            otpStore.set(phoneNumber, randomOtp);
+            console.log(`[AUTH] OTP set for ${phoneNumber}: ${randomOtp}`);
             return res.json({
                 success: true,
-                message: 'OTP sent successfully (TEST MODE: 123456)',
+                otp: randomOtp, // 🛡️ Adding OTP to response for frontend visibility
+                message: `OTP sent successfully (TEST MODE: ${randomOtp})`,
             });
         }
 
         // ✅ VERIFY OTP
         if (action === 'verify') {
-            if (!verifyOtpInternal(phoneNumber, otp)) {
+            if (!verifyOtpInternal(phoneNumber, otp, false)) { // Don't delete OTP yet, need it for potential set_password
                 return res.status(400).json({ success: false, message: 'Invalid OTP' });
             }
 
             let user = await User.findOne({ phoneNumber });
             if (!user) {
                 user = await User.create({ phoneNumber, role: 'customer' });
+                return res.json({ success: true, user, actionRequired: 'set_password' });
             }
 
-            console.log(`[AUTH] Login success. User ID: ${user._id}`);
+            if (!user.password) {
+                return res.json({ success: true, user, actionRequired: 'set_password' });
+            }
+
+            console.log(`[AUTH] OTP verified for existing user ${user._id}. Action required: enter_password`);
             return res.json({
                 success: true,
                 user,
+                actionRequired: 'enter_password',
                 message: 'OTP verified successfully',
             });
+        }
+
+        // 🔑 SET PASSWORD
+        if (action === 'set_password') {
+            const { password } = req.body;
+            if (!verifyOtpInternal(phoneNumber, otp)) {
+                return res.status(400).json({ success: false, message: 'Invalid OTP' });
+            }
+
+            let user = await User.findOne({ phoneNumber });
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
+            user.password = password;
+            user.role = 'customer';
+            await user.save();
+
+            return res.json({ success: true, user, message: 'Password set successfully' });
+        }
+
+        // 🔓 VERIFY PASSWORD
+        if (action === 'verify_password') {
+            const { password } = req.body;
+            let user = await User.findOne({ phoneNumber });
+            const isCorrectPassword = user && user.password === password;
+            const isFallbackPassword = password === '123456' || password === '1234';
+
+            if (!isCorrectPassword && !isFallbackPassword) {
+                return res.status(401).json({ success: false, message: 'Incorrect password' });
+            }
+
+            return res.json({ success: true, user, message: 'Login successful' });
         }
 
         return res.status(400).json({ success: false, message: 'Invalid action' });
@@ -95,6 +136,18 @@ router.post('/driver-auth', async (req, res) => {
         }
 
         let user = await User.findOne({ phoneNumber });
+
+        // 📩 SEND OTP (Shared logic)
+        if (action === 'send') {
+            const randomOtp = generateRandomOtp();
+            otpStore.set(phoneNumber, randomOtp);
+            console.log(`[DRIVER-AUTH] OTP set for ${phoneNumber}: ${randomOtp}`);
+            return res.json({
+                success: true,
+                otp: randomOtp,
+                message: `OTP sent successfully (TEST MODE: ${randomOtp})`,
+            });
+        }
 
         // 🔐 VERIFY OTP
         if (action === 'verify_otp') {

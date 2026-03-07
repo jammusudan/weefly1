@@ -50,6 +50,7 @@ export default function Home() {
   const [selectedVehicle, setSelectedVehicle] = useState(0);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [receivedOtp, setReceivedOtp] = useState<string | null>(null); // Captured OTP from backend
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -60,7 +61,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null); // null, 'customer', 'driver', 'admin'
   const [driverAuthStep, setDriverAuthStep] = useState<'phone' | 'otp' | 'set_password' | 'enter_password'>('phone');
+  const [customerAuthStep, setCustomerAuthStep] = useState<'phone' | 'otp' | 'set_password' | 'enter_password'>('phone');
   const [driverPassword, setDriverPassword] = useState("");
+  const [customerPassword, setCustomerPassword] = useState("");
   const [rideType, setRideType] = useState<"instant" | "schedule">("instant");
   const [scheduledTime, setScheduledTime] = useState("");
   const [trackProgress, setTrackProgress] = useState(0);
@@ -309,11 +312,12 @@ export default function Home() {
         const data = await res.json();
         if (data.success) {
           setDriverAuthStep('otp');
+          if (data.otp) setReceivedOtp(data.otp); // Capture OTP
         } else setError(data.message || "Failed to send OTP");
       }
       else if (driverAuthStep === 'otp') {
         const trimmedOtp = otp.trim();
-        if (trimmedOtp.length < 6) { setError("Please enter 6-digit OTP"); return; }
+        if (trimmedOtp.length < 4) { setError("Please enter 4-digit OTP"); return; }
         const API_BASE = getApiBase();
         const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
           method: 'POST',
@@ -337,7 +341,7 @@ export default function Home() {
       }
       else if (driverAuthStep === 'set_password') {
         const trimmedOtp = otp.trim();
-        if (trimmedOtp.length < 6) { setError("Please enter the 6-digit OTP"); return; }
+        if (trimmedOtp.length < 4) { setError("Please enter the 4-digit OTP"); return; }
         if (driverPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
         const API_BASE = getApiBase();
         const res = await fetch(`${API_BASE}/api/auth/driver-auth`, {
@@ -386,71 +390,72 @@ export default function Home() {
       return;
     }
 
-    if (!waitingForOtp) {
-      if (!phone) {
-        setError("Please enter a phone number");
-        return;
-      }
-      setIsLoading(true);
-      try {
-        setError(null);
-        const API_BASE = getApiBase();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const API_BASE = getApiBase();
+      if (customerAuthStep === 'phone') {
+        if (!phone) { setError("Please enter a phone number"); return; }
         const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, action: 'send' }),
         });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}...`);
-        }
         const data = await res.json();
         if (data.success) {
+          setCustomerAuthStep('otp');
           setWaitingForOtp(true);
-        } else {
-          setError(data.message || data.error || "Failed to send OTP");
-        }
-      } catch (err: any) {
-        console.error("OTP send error:", err);
-        setError(err.message || "Server Unreachable. Please run 'npm run dev' from the root project folder.");
-      } finally {
-        setIsLoading(false);
+          if (data.otp) setReceivedOtp(data.otp); // Capture OTP
+        } else setError(data.message || "Failed to send OTP");
       }
-    } else {
-      const trimmedOtp = otp.trim();
-      if (trimmedOtp.length < 6) {
-        setError("Please enter the 6-digit OTP");
-        return;
-      }
-      setIsLoading(true);
-      try {
-        setError(null);
-        const API_BASE = getApiBase();
+      else if (customerAuthStep === 'otp') {
+        const trimmedOtp = otp.trim();
+        if (trimmedOtp.length < 4) { setError("Please enter the 4-digit OTP"); return; }
         const res = await fetch(`${API_BASE}/api/auth/otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: phone, otp: trimmedOtp, action: 'verify' }),
         });
-        if (!res.ok) {
-          const text = await res.text();
+        const data = await res.json();
+        if (data.success) {
+          setCustomerAuthStep(data.actionRequired);
+        } else {
           setOtp("");
-          throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}...`);
+          setError(data.message || "Invalid OTP");
         }
+      }
+      else if (customerAuthStep === 'set_password') {
+        const trimmedOtp = otp.trim();
+        if (trimmedOtp.length < 4) { setError("Please enter the 4-digit OTP"); return; }
+        if (customerPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
+        const res = await fetch(`${API_BASE}/api/auth/otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: phone, otp: trimmedOtp, password: customerPassword, action: 'set_password' }),
+        });
         const data = await res.json();
         if (data.success) {
           setIsLoggedIn(true);
           setUser(data.user);
-          setOtp("");
-        } else {
-          setOtp("");
-          setError(data.message || data.error || "OTP verification failed.");
-        }
-      } catch (err: any) {
-        console.error("OTP verify error:", err);
-        setError(err.message || "Server Unreachable. Please run 'npm run dev' from the root project folder.");
-      } finally {
-        setIsLoading(false);
+        } else setError(data.message || "Failed to set password");
       }
+      else if (customerAuthStep === 'enter_password') {
+        const res = await fetch(`${API_BASE}/api/auth/otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: phone, password: customerPassword, action: 'verify_password' }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setIsLoggedIn(true);
+          setUser(data.user);
+        } else setError(data.message || "Incorrect password");
+      }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Server error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -764,7 +769,13 @@ export default function Home() {
             <div className="p-10 text-center space-y-8">
               <div>
                 <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Welcome Back</h1>
-                <p className="text-white/40 text-sm">Book your luxury ride in seconds</p>
+                <p className="text-white/40 text-sm">{receivedOtp ? "Verify your identity with the code below" : "Book your luxury ride in seconds"}</p>
+                {receivedOtp && (
+                  <div className="mt-4 bg-accent/20 border border-accent/40 py-3 px-6 rounded-2xl animate-bounce">
+                    <p className="text-accent font-black text-2xl tracking-[10px]">{receivedOtp}</p>
+                    <p className="text-accent/60 text-[8px] font-bold uppercase tracking-widest mt-1">Use this OTP to verify</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -784,19 +795,26 @@ export default function Home() {
                 )}
                 {userRole === 'driver' && driverAuthStep === 'otp' && (
                   <div className="space-y-4">
-                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify OTP</p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify OTP</p>
+                      {receivedOtp && (
+                        <p className="text-[10px] text-white/60 font-bold uppercase ring-1 ring-white/10 px-2 py-1 rounded-lg animate-pulse">
+                          Your OTP: <span className="text-accent">{receivedOtp}</span>
+                        </p>
+                      )}
+                    </div>
                     <div className="flex gap-2 justify-center relative">
-                      {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="w-10 h-14 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-xl font-bold text-white group-focus-within:border-accent">
-                          {otp[i - 1] ? '•' : ''}
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-12 h-16 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-2xl font-bold text-white group-focus-within:border-accent">
+                          {otp[i - 1] ? otp[i - 1] : ''}
                         </div>
                       ))}
                       <input
                         autoFocus
-                        type="password"
+                        type="tel"
                         value={otp}
-                        maxLength={6}
-                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={4}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                         onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                       />
@@ -807,18 +825,18 @@ export default function Home() {
                   <div className="space-y-4">
                     <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify & Create Password</p>
                     <div className="flex gap-2 justify-center relative mb-4">
-                      {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="w-10 h-14 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-xl font-bold text-white group-focus-within:border-accent">
-                          {otp[i - 1] ? '•' : ''}
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-12 h-16 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-2xl font-bold text-white group-focus-within:border-accent">
+                          {otp[i - 1] ? otp[i - 1] : ''}
                         </div>
                       ))}
                       <input
                         autoFocus
-                        type="password"
+                        type="tel"
                         placeholder="Re-enter OTP"
                         value={otp}
-                        maxLength={6}
-                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={4}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                       />
                     </div>
@@ -853,7 +871,7 @@ export default function Home() {
                 )}
 
                 {/* Customer & Admin Auth Flow */}
-                {userRole !== 'driver' && !waitingForOtp && (
+                {userRole !== 'driver' && customerAuthStep === 'phone' && (
                   <div className="relative group">
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40 font-bold">{userRole === 'admin' ? '' : '+91'}</span>
                     <input
@@ -866,23 +884,78 @@ export default function Home() {
                     />
                   </div>
                 )}
-                {userRole !== 'driver' && waitingForOtp && (
+                {userRole !== 'driver' && customerAuthStep === 'otp' && (
                   <div className="space-y-4">
-                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify OTP</p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify OTP</p>
+                      {receivedOtp && (
+                        <p className="text-[10px] text-white/60 font-bold uppercase ring-1 ring-white/10 px-2 py-1 rounded-lg animate-pulse">
+                          Your OTP: <span className="text-accent">{receivedOtp}</span>
+                        </p>
+                      )}
+                    </div>
                     <div className="flex gap-2 justify-center relative">
-                      {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="w-10 h-14 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-xl font-bold text-white group-focus-within:border-accent">
-                          {otp[i - 1] ? '•' : ''}
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-12 h-16 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-2xl font-bold text-white group-focus-within:border-accent">
+                          {otp[i - 1] ? otp[i - 1] : ''}
                         </div>
                       ))}
                       <input
                         autoFocus
-                        type="password"
+                        type="tel"
                         value={otp}
-                        maxLength={6}
-                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={4}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                         onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                  </div>
+                )}
+                {userRole !== 'driver' && customerAuthStep === 'set_password' && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Verify & Create Password</p>
+                    <div className="flex gap-2 justify-center relative mb-4">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-12 h-16 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center text-2xl font-bold text-white group-focus-within:border-accent">
+                          {otp[i - 1] ? otp[i - 1] : ''}
+                        </div>
+                      ))}
+                      <input
+                        autoFocus
+                        type="tel"
+                        placeholder="Re-enter OTP"
+                        value={otp}
+                        maxLength={4}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                    <div className="relative group">
+                      <input
+                        type="password"
+                        placeholder="Create New Password (Min 6)"
+                        value={customerPassword}
+                        onChange={(e) => setCustomerPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                        className="w-full bg-black/40 border border-white/5 h-16 px-6 rounded-[24px] focus:border-accent focus:ring-1 focus:ring-accent outline-none font-bold text-white transition-all"
+                      />
+                    </div>
+                    <p className="text-[10px] text-white/40 text-center uppercase tracking-tighter">Enter the same OTP for extra security</p>
+                  </div>
+                )}
+                {userRole !== 'driver' && customerAuthStep === 'enter_password' && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] text-accent font-black uppercase tracking-widest">Enter Password</p>
+                    <div className="relative group">
+                      <input
+                        autoFocus
+                        type="password"
+                        placeholder="Your Password"
+                        value={customerPassword}
+                        onChange={(e) => setCustomerPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                        className="w-full bg-black/40 border border-white/5 h-16 px-6 rounded-[24px] focus:border-accent focus:ring-1 focus:ring-accent outline-none font-bold text-white transition-all"
                       />
                     </div>
                   </div>
@@ -898,7 +971,11 @@ export default function Home() {
                       driverAuthStep === 'phone' ? 'Send OTP →' :
                         driverAuthStep === 'otp' ? 'Verify OTP →' :
                           driverAuthStep === 'set_password' ? 'Set Password & Login →' : 'Login →'
-                    ) : (waitingForOtp ? "Verify OTP →" : "Send OTP →")
+                    ) : (
+                      customerAuthStep === 'phone' ? 'Send OTP →' :
+                        customerAuthStep === 'otp' ? 'Verify OTP →' :
+                          customerAuthStep === 'set_password' ? 'Set Password & Login →' : 'Login →'
+                    )
                   )}
                 </button>
 

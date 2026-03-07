@@ -115,7 +115,7 @@ export default function AdminDashboard() {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'overview': return <OverviewTab stats={stats} />;
+            case 'overview': return <OverviewTab stats={stats} onNavigate={setActiveTab} />;
             case 'drivers': return <DriversTab />;
             case 'pricing': return <PricingTab />;
             case 'trips': return <TripsTab />;
@@ -203,21 +203,25 @@ export default function AdminDashboard() {
     );
 }
 
-function OverviewTab({ stats }: { stats: any }) {
+function OverviewTab({ stats, onNavigate }: { stats: any, onNavigate: (tab: string) => void }) {
     if (!stats) return <div className="animate-pulse space-y-8">...Loading Dashboard Data</div>;
 
     const cards = [
-        { label: 'Total Revenue', value: <Currency amount={stats.totalRevenue} iconSize={20} />, trend: '+12.5%', color: 'accent', icon: DollarSign },
-        { label: 'Active Drivers', value: stats.activeDrivers, trend: '+4.2%', color: 'blue', icon: Users },
-        { label: 'Total Trips', value: stats.totalRides, trend: '+28.1%', color: 'purple', icon: TrendingUp },
-        { label: 'Open Reports', value: stats.openReports, trend: '-2.5%', color: 'red', icon: AlertCircle },
+        { id: 'pricing', label: 'Total Revenue', value: <Currency amount={stats.totalRevenue} iconSize={20} />, trend: '+12.5%', color: 'accent', icon: DollarSign },
+        { id: 'drivers', label: 'Active Drivers', value: stats.activeDrivers, trend: '+4.2%', color: 'blue', icon: Users },
+        { id: 'trips', label: 'Total Trips', value: stats.totalRides, trend: '+28.1%', color: 'purple', icon: TrendingUp },
+        { id: 'reports', label: 'Open Reports', value: stats.openReports, trend: '-2.5%', color: 'red', icon: AlertCircle },
     ];
 
     return (
         <div className="space-y-12">
             <div className="grid grid-cols-4 gap-6">
                 {cards.map((card, i) => (
-                    <div key={i} className="bg-white/[0.03] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group hover:bg-white/[0.05] transition-all">
+                    <div
+                        key={i}
+                        onClick={() => onNavigate(card.id)}
+                        className="bg-white/[0.03] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group hover:bg-white/[0.08] hover:border-accent/40 transition-all cursor-pointer active:scale-[0.98]"
+                    >
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-${card.color}-500/10 rounded-full blur-3xl -mr-12 -mt-12`} />
                         <div className="flex justify-between items-start mb-6">
                             <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-accent group-hover:scale-110 transition-transform`}>
