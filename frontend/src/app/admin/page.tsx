@@ -120,7 +120,7 @@ export default function AdminDashboard() {
             case 'pricing': return <PricingTab />;
             case 'trips': return <TripsTab />;
             case 'reports': return <ReportsTab />;
-            default: return <OverviewTab stats={stats} />;
+           default: return <OverviewTab stats={stats} onNavigate={setActiveTab} />;
         }
     };
 
