@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
-    phoneNumber: { type: String, required: true, unique: true },
-    password: { type: String },
+    email: { type: String, required: true, unique: true },
+    phoneNumber: { type: String, sparse: true },
+    password: { type: String, required: true },
     name: { type: String },
     role: { type: String, enum: ['user', 'driver', 'admin'], default: 'user' },
     aadharNumber: { type: String },

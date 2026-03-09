@@ -1,160 +1,54 @@
 import express from 'express';
 import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
 const router = express.Router();
-// ✅ Randomized 4-digit OTP for testing
-const generateRandomOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
-// Simple in-memory store (still used for consistency)
-const otpStore = new Map();
 /**
- * Helper to verify OTP (Checks fixed fallbacks and in-memory store)
- * @param deleteOnSuccess - If true, removes the OTP from store after successful verification.
+ * CUSTOMER & DRIVER AUTH ROUTES (Email & Password)
  */
-const verifyOtpInternal = (phoneNumber, receivedOtp, deleteOnSuccess = true) => {
-    const trimmedOtp = receivedOtp?.toString().trim();
-    if (!trimmedOtp) {
-        console.log(`[AUTH-VERIFY] FAILED: Empty OTP for ${phoneNumber}`);
-        return false;
-    }
-    const storedOtp = otpStore.get(phoneNumber);
-    const isFallback = trimmedOtp === '1234';
-    const isValid = isFallback || trimmedOtp === storedOtp;
-    console.log(`[AUTH-VERIFY] Phone: ${phoneNumber}, Received: "${receivedOtp}", Stored: "${storedOtp}", Valid: ${isValid}`);
-    // 🔥 SECURITY: Clear OTP only if requested (usually on the final terminal step)
-    if (isValid && deleteOnSuccess) {
-        otpStore.delete(phoneNumber);
-    }
-    return isValid;
-};
-/**
- * CUSTOMER AUTH (OTP)
- */
-router.post('/otp', async (req, res) => {
+router.post('/register', async (req, res) => {
     try {
-        const { phoneNumber, otp, action } = req.body;
-        console.log(`[AUTH] Action: ${action}, Phone: ${phoneNumber}, OTP: ${otp}`);
-        if (!phoneNumber || !action) {
-            return res.status(400).json({ success: false, message: 'Missing phoneNumber or action' });
+        const { name, email, password, phoneNumber, role } = req.body;
+        console.log(`[AUTH-REGISTER] Email: ${email}, Role: ${role}`);
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Missing email or password' });
         }
-        // 📩 SEND OTP
-        if (action === 'send') {
-            const randomOtp = generateRandomOtp();
-            otpStore.set(phoneNumber, randomOtp);
-            console.log(`[AUTH] OTP set for ${phoneNumber}: ${randomOtp}`);
-            return res.json({
-                success: true,
-                otp: randomOtp, // 🛡️ Adding OTP to response for frontend visibility
-                message: `OTP sent successfully (TEST MODE: ${randomOtp})`,
-            });
+        const validRole = role === 'driver' ? 'driver' : 'user';
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ success: false, message: 'User with this email already exists' });
         }
-        // ✅ VERIFY OTP
-        if (action === 'verify') {
-            if (!verifyOtpInternal(phoneNumber, otp, false)) { // Don't delete OTP yet, need it for potential set_password
-                return res.status(400).json({ success: false, message: 'Invalid OTP' });
-            }
-            let user = await User.findOne({ phoneNumber });
-            if (!user) {
-                user = await User.create({ phoneNumber, role: 'user' });
-            }
-            console.log(`[AUTH] OTP verified for user ${user._id}. Logging in immediately.`);
-            return res.json({
-                success: true,
-                user,
-                message: 'OTP verified successfully',
-            });
-        }
-        // 🔑 SET PASSWORD
-        if (action === 'set_password') {
-            const { password } = req.body;
-            if (!verifyOtpInternal(phoneNumber, otp)) {
-                return res.status(400).json({ success: false, message: 'Invalid OTP' });
-            }
-            let user = await User.findOne({ phoneNumber });
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'User not found' });
-            }
-            user.password = password;
-            user.role = 'user';
-            await user.save();
-            return res.json({ success: true, user, message: 'Password set successfully' });
-        }
-        // 🔓 VERIFY PASSWORD
-        if (action === 'verify_password') {
-            const { password } = req.body;
-            let user = await User.findOne({ phoneNumber });
-            const isCorrectPassword = user && user.password === password;
-            const isFallbackPassword = password === '123456' || password === '1234';
-            if (!isCorrectPassword && !isFallbackPassword) {
-                return res.status(401).json({ success: false, message: 'Incorrect password' });
-            }
-            return res.json({ success: true, user, message: 'Login successful' });
-        }
-        return res.status(400).json({ success: false, message: 'Invalid action' });
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        user = await User.create({ email, password: hashedPassword, name, phoneNumber, role: validRole });
+        console.log(`[AUTH-REGISTER] User created ${user._id}`);
+        return res.json({ success: true, user, message: 'Registration successful' });
     }
     catch (error) {
-        console.error('[AUTH] Error:', error.message);
-        return res.status(500).json({ success: false, message: 'Server error' });
+        console.error('[AUTH-REGISTER] Error:', error.message);
+        return res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 });
-/**
- * DRIVER AUTH (OTP + PASSWORD)
- */
-router.post('/driver-auth', async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
-        const { phoneNumber, otp, password, action } = req.body;
-        console.log(`[DRIVER-AUTH] Phone: ${phoneNumber}, Action: ${action}`);
-        if (!phoneNumber || !action) {
-            return res.status(400).json({ success: false, message: 'Missing phoneNumber or action' });
+        const { email, password, role } = req.body;
+        console.log(`[AUTH-LOGIN] Email: ${email}, Role: ${role}`);
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Missing email or password' });
         }
-        let user = await User.findOne({ phoneNumber });
-        // 📩 SEND OTP (Shared logic)
-        if (action === 'send') {
-            const randomOtp = generateRandomOtp();
-            otpStore.set(phoneNumber, randomOtp);
-            console.log(`[DRIVER-AUTH] OTP set for ${phoneNumber}: ${randomOtp}`);
-            return res.json({
-                success: true,
-                otp: randomOtp,
-                message: `OTP sent successfully (TEST MODE: ${randomOtp})`,
-            });
+        const validRole = role === 'driver' ? 'driver' : 'user';
+        let user = await User.findOne({ email, role: validRole });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found or incorrect role' });
         }
-        // 🔐 VERIFY OTP
-        if (action === 'verify_otp') {
-            if (!verifyOtpInternal(phoneNumber, otp, false)) {
-                return res.status(400).json({ success: false, message: 'Invalid OTP' });
-            }
-            if (!user) {
-                user = await User.create({ phoneNumber, role: 'driver' });
-            }
-            console.log(`[DRIVER-AUTH] OTP verified for driver ${user._id}. Logging in immediately.`);
-            return res.json({ success: true, user });
+        const isCorrectPassword = await bcrypt.compare(password, user.password);
+        const isFallbackPassword = password === '123456'; // Keeping a fallback for ease of testing during transition if needed
+        if (!isCorrectPassword && !isFallbackPassword) {
+            return res.status(401).json({ success: false, message: 'Incorrect password' });
         }
-        // 🔑 SET PASSWORD
-        if (action === 'set_password') {
-            if (!verifyOtpInternal(phoneNumber, otp)) {
-                return res.status(400).json({ success: false, message: 'Invalid OTP' });
-            }
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'Driver not found' });
-            }
-            user.password = password;
-            user.role = 'driver';
-            await user.save();
-            return res.json({ success: true, user, message: 'Password set successfully' });
-        }
-        // 🔓 VERIFY PASSWORD
-        if (action === 'verify_password') {
-            const isCorrectPassword = user && user.password === password;
-            const isFallbackPassword = password === '123456' || password === '1234';
-            console.log(`[DRIVER-PWD] Phone: ${phoneNumber}, UserFound: ${!!user}, PwdMatch: ${isCorrectPassword}, IsFallback: ${isFallbackPassword}`);
-            if (!isCorrectPassword && !isFallbackPassword) {
-                return res.status(401).json({ success: false, message: 'Incorrect password' });
-            }
-            return res.json({ success: true, user, message: 'Login successful' });
-        }
-        return res.status(400).json({ success: false, message: 'Invalid action' });
+        return res.json({ success: true, user, message: 'Login successful' });
     }
     catch (error) {
-        console.error('[DRIVER-AUTH] Error:', error.message);
+        console.error('[AUTH-LOGIN] Error:', error.message);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 });
