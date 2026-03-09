@@ -19,7 +19,9 @@ import {
     Plus,
     CheckCircle2,
     XCircle,
-    MoreVertical
+    MoreVertical,
+    Menu,
+    X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatINR } from "@/lib/format";
@@ -42,6 +44,7 @@ export default function AdminDashboard() {
     const [adminEmail, setAdminEmail] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
     const [loginError, setLoginError] = useState('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (!isAdminAuthenticated) return;
@@ -120,25 +123,46 @@ export default function AdminDashboard() {
             case 'pricing': return <PricingTab />;
             case 'trips': return <TripsTab />;
             case 'reports': return <ReportsTab />;
-           default: return <OverviewTab stats={stats} onNavigate={setActiveTab} />;
+            default: return <OverviewTab stats={stats} onNavigate={setActiveTab} />;
         }
     };
 
     return (
         <div className="min-h-screen bg-[#0A0A0A] text-white flex font-sans selection:bg-accent selection:text-primary">
+            {/* Sidebar Overlay for Mobile */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[45] md:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Sidebar */}
-            <aside className="w-64 border-r border-white/5 bg-black/50 backdrop-blur-xl flex flex-col fixed h-full z-50">
+            <aside className={`w-64 border-r border-white/5 bg-black/50 backdrop-blur-xl flex flex-col fixed h-full z-50 transition-transform duration-300 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="p-8">
-                    <div className="flex items-center gap-2 mb-8">
-                        <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                        <span className="text-xl font-black tracking-tighter uppercase">Weefly <span className="text-accent">Admin</span></span>
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                            <span className="text-xl font-black tracking-tighter uppercase">Weefly <span className="text-accent">Admin</span></span>
+                        </div>
+                        <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white/40 hover:text-white transition-colors">
+                            <X size={20} />
+                        </button>
                     </div>
 
                     <nav className="space-y-1">
                         {SIDEBAR_ITEMS.map((item) => (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveTab(item.id)}
+                                onClick={() => {
+                                    setActiveTab(item.id);
+                                    setIsSidebarOpen(false);
+                                }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === item.id
                                     ? 'bg-accent text-primary shadow-lg shadow-accent/20'
                                     : 'text-white/40 hover:text-white hover:bg-white/5'
@@ -165,22 +189,27 @@ export default function AdminDashboard() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-grow ml-64 p-12 relative overflow-hidden">
+            <main className="flex-grow md:ml-64 p-6 md:p-12 relative overflow-hidden transition-all duration-300">
                 {/* Decorative gradients */}
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] -mr-64 -mt-64" />
                 <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px] -ml-32 -mb-32" />
 
                 <div className="relative z-10">
-                    <header className="flex justify-between items-center mb-12">
-                        <div>
-                            <h1 className="text-4xl font-black tracking-tight text-white capitalize">{activeTab} <span className="text-accent">Center</span></h1>
-                            <p className="text-white/40 text-[10px] font-black uppercase tracking-[4px] mt-2">Managing the Weefly Ecosystem</p>
+                    <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-12">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-white/10 transition-all text-white/60">
+                                <Menu size={20} />
+                            </button>
+                            <div>
+                                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white capitalize">{activeTab} <span className="text-accent">Center</span></h1>
+                                <p className="text-white/40 text-[10px] font-black uppercase tracking-[4px] mt-2">Managing the Weefly Ecosystem</p>
+                            </div>
                         </div>
                         <div className="flex gap-4">
-                            <button className="bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-white/10 transition-all text-white/60">
+                            <button className="flex-1 md:flex-none bg-white/5 border border-white/10 p-3 rounded-2xl hover:bg-white/10 transition-all text-white/60 flex justify-center items-center">
                                 <Search size={20} />
                             </button>
-                            <button className="bg-accent text-primary px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-accent/10">
+                            <button className="flex-[2] md:flex-none bg-accent text-primary px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-accent/10">
                                 Export Data
                             </button>
                         </div>
@@ -215,7 +244,7 @@ function OverviewTab({ stats, onNavigate }: { stats: any, onNavigate: (tab: stri
 
     return (
         <div className="space-y-12">
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {cards.map((card, i) => (
                     <div
                         key={i}
@@ -237,7 +266,7 @@ function OverviewTab({ stats, onNavigate }: { stats: any, onNavigate: (tab: stri
                 ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white/[0.02] border border-white/5 p-10 rounded-[48px] flex flex-col justify-center items-center text-center">
                     <h4 className="text-sm font-black uppercase tracking-widest text-accent mb-6">Average Driver Rating</h4>
                     <div className="relative">
@@ -317,84 +346,86 @@ function DriversTab() {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div className="flex gap-4">
-                    <button className="bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">All Drivers</button>
-                    <button className="text-white/40 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-white">Pending Approval</button>
+                    <button className="flex-grow md:flex-none bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">All Drivers</button>
+                    <button className="flex-grow md:flex-none text-white/40 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-white">Pending Approval</button>
                 </div>
-                <button className="bg-accent/10 text-accent border border-accent/20 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-accent/20 transition-colors">
+                <button className="bg-accent/10 text-accent border border-accent/20 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-accent/20 transition-colors">
                     <Plus size={14} /> Add New Driver
                 </button>
             </div>
 
             <div className="bg-white/[0.02] border border-white/5 rounded-[40px] overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-white/[0.03] border-b border-white/5">
-                        <tr>
-                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Driver</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Phone</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {drivers.length > 0 ? drivers.map((driver, i) => (
-                            <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                                <td className="px-8 py-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/20 flex items-center justify-center font-black text-accent text-xs">
-                                            {driver.name ? driver.name[0] : 'D'}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm tracking-tight">{driver.name || 'Anonymous'}</p>
-                                            <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">VEH: {driver.vehicleNumber || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-8 py-6 text-sm font-medium text-white/60">{driver.phoneNumber}</td>
-                                <td className="px-8 py-6">
-                                    <span className={`text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${driver.isOnline ? 'bg-green-500/10 text-green-500' : 'bg-white/5 text-white/40'}`}>
-                                        {driver.isOnline ? 'Online' : 'Offline'}
-                                    </span>
-                                </td>
-                                <td className="px-8 py-6">
-                                    <div className="flex flex-col items-start gap-1">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-sm font-black">4.9</span>
-                                            <AlertCircle size={10} className="fill-accent text-accent" />
-                                        </div>
-                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest mt-1 ${driver.kycStatus === 'verified' ? 'bg-green-500/20 text-green-400' : driver.kycStatus === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-500'}`}>KYC: {driver.kycStatus}</span>
-                                        {driver.isSuspended && <span className="text-[8px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest bg-red-500 text-white mt-1">Suspended</span>}
-                                    </div>
-                                </td>
-                                <td className="px-8 py-6">
-                                    <div className="flex gap-2 relative group-button">
-                                        <div className="flex flex-col gap-1 w-24">
-                                            {driver.kycStatus === 'pending' && (
-                                                <>
-                                                    <button onClick={() => handleKycStatus(driver._id, 'verified')} className="text-[8px] bg-green-500/20 text-green-400 py-1 rounded hover:bg-green-500 hover:text-white uppercase tracking-widest font-black transition">Approve KYC</button>
-                                                    <button onClick={() => handleKycStatus(driver._id, 'rejected')} className="text-[8px] bg-red-500/20 text-red-400 py-1 rounded hover:bg-red-500 hover:text-white uppercase tracking-widest font-black transition">Reject KYC</button>
-                                                </>
-                                            )}
-                                            {driver.kycStatus === 'verified' && (
-                                                <button onClick={() => handleSuspension(driver._id, !driver.isSuspended)} className={`text-[8px] py-1 rounded uppercase tracking-widest font-black transition ${driver.isSuspended ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white' : 'bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white'}`}>
-                                                    {driver.isSuspended ? 'Unsuspend' : 'Suspend'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        )) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[800px]">
+                        <thead className="bg-white/[0.03] border-b border-white/5">
                             <tr>
-                                <td colSpan={5} className="px-8 py-20 text-center opacity-20">
-                                    <Users size={40} className="mx-auto mb-4" />
-                                    <p className="font-black uppercase tracking-[4px]">No drivers found</p>
-                                </td>
+                                <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Driver</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Phone</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Action</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {drivers.length > 0 ? drivers.map((driver, i) => (
+                                <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/20 flex items-center justify-center font-black text-accent text-xs">
+                                                {driver.name ? driver.name[0] : 'D'}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm tracking-tight">{driver.name || 'Anonymous'}</p>
+                                                <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">VEH: {driver.vehicleNumber || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-sm font-medium text-white/60">{driver.phoneNumber}</td>
+                                    <td className="px-8 py-6">
+                                        <span className={`text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${driver.isOnline ? 'bg-green-500/10 text-green-500' : 'bg-white/5 text-white/40'}`}>
+                                            {driver.isOnline ? 'Online' : 'Offline'}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex flex-col items-start gap-1">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-sm font-black">4.9</span>
+                                                <AlertCircle size={10} className="fill-accent text-accent" />
+                                            </div>
+                                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest mt-1 ${driver.kycStatus === 'verified' ? 'bg-green-500/20 text-green-400' : driver.kycStatus === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-500'}`}>KYC: {driver.kycStatus}</span>
+                                            {driver.isSuspended && <span className="text-[8px] font-black px-2 py-0.5 rounded-sm uppercase tracking-widest bg-red-500 text-white mt-1">Suspended</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex gap-2 relative group-button">
+                                            <div className="flex flex-col gap-1 w-24">
+                                                {driver.kycStatus === 'pending' && (
+                                                    <>
+                                                        <button onClick={() => handleKycStatus(driver._id, 'verified')} className="text-[8px] bg-green-500/20 text-green-400 py-1 rounded hover:bg-green-500 hover:text-white uppercase tracking-widest font-black transition">Approve KYC</button>
+                                                        <button onClick={() => handleKycStatus(driver._id, 'rejected')} className="text-[8px] bg-red-500/20 text-red-400 py-1 rounded hover:bg-red-500 hover:text-white uppercase tracking-widest font-black transition">Reject KYC</button>
+                                                    </>
+                                                )}
+                                                {driver.kycStatus === 'verified' && (
+                                                    <button onClick={() => handleSuspension(driver._id, !driver.isSuspended)} className={`text-[8px] py-1 rounded uppercase tracking-widest font-black transition ${driver.isSuspended ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white' : 'bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white'}`}>
+                                                        {driver.isSuspended ? 'Unsuspend' : 'Suspend'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center opacity-20">
+                                        <Users size={40} className="mx-auto mb-4" />
+                                        <p className="font-black uppercase tracking-[4px]">No drivers found</p>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
@@ -433,7 +464,7 @@ function PricingTab() {
     };
 
     return (
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white/[0.02] border border-white/5 p-10 rounded-[48px] space-y-8">
                 <h4 className="text-sm font-black uppercase tracking-widest text-accent">Base Fare Configuration</h4>
                 <div className="space-y-6">
@@ -522,60 +553,62 @@ function TripsTab() {
 
     return (
         <div className="bg-white/[0.02] border border-white/5 rounded-[40px] overflow-hidden">
-            <table className="w-full text-left">
-                <thead className="bg-white/[0.03] border-b border-white/5">
-                    <tr>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">ID</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Customer</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Driver</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Routes</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Fare</th>
-                        <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                    {trips.length > 0 ? trips.map((trip, i) => (
-                        <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                            <td className="px-8 py-6 text-xs font-black text-white/40 font-mono uppercase">#{trip._id.slice(-6)}</td>
-                            <td className="px-8 py-6">
-                                <p className="font-bold text-sm tracking-tight">{trip.userId?.name || 'Local User'}</p>
-                                <p className="text-[10px] text-white/40 font-black tracking-widest uppercase">{trip.userId?.phoneNumber}</p>
-                            </td>
-                            <td className="px-8 py-6">
-                                <p className="font-bold text-sm tracking-tight">{trip.driver?.name || 'N/A'}</p>
-                                <p className="text-[10px] text-white/40 font-black tracking-widest uppercase">{trip.driver?.vehicleNumber || 'No Driver Assigned'}</p>
-                            </td>
-                            <td className="px-8 py-6 max-w-[200px]">
-                                <div className="space-y-1">
-                                    <p className="text-xs font-medium truncate text-white/60">From: {trip.pickupLocation.address}</p>
-                                    <p className="text-xs font-medium truncate text-white/60">To: {trip.destinationLocation.address}</p>
-                                </div>
-                            </td>
-                            <td className="px-8 py-6"><Currency amount={trip.fare} className="text-accent" iconSize={12} /></td>
-                            <td className="px-8 py-6">
-                                <span className={`text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${trip.status === 'completed' ? 'bg-green-500/10 text-green-500' :
-                                    trip.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
-                                        'bg-accent/10 text-accent animate-pulse'
-                                    }`}>
-                                    {trip.refundStatus === 'processed' ? 'Refunded' : trip.status}
-                                </span>
-                                <div className="mt-2 flex gap-1">
-                                    {(trip.status !== 'completed' && trip.status !== 'cancelled') && (
-                                        <button onClick={() => handleTripAction(trip._id, 'cancel')} className="text-[8px] bg-red-500/20 text-red-400 py-1 px-2 rounded hover:bg-red-500 hover:text-white uppercase tracking-widest font-black transition">Force Cancel</button>
-                                    )}
-                                    {(trip.status === 'cancelled' && trip.refundStatus !== 'processed') && (
-                                        <button onClick={() => handleTripAction(trip._id, 'refund')} className="text-[8px] bg-blue-500/20 text-blue-400 py-1 px-2 rounded hover:bg-blue-500 hover:text-white uppercase tracking-widest font-black transition">Process Refund</button>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    )) : (
+            <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[900px]">
+                    <thead className="bg-white/[0.03] border-b border-white/5">
                         <tr>
-                            <td colSpan={6} className="px-8 py-20 text-center opacity-20 font-black uppercase tracking-[4px]">No trip history found</td>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">ID</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Customer</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Driver</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Routes</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Fare</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {trips.length > 0 ? trips.map((trip, i) => (
+                            <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                                <td className="px-8 py-6 text-xs font-black text-white/40 font-mono uppercase">#{trip._id.slice(-6)}</td>
+                                <td className="px-8 py-6">
+                                    <p className="font-bold text-sm tracking-tight">{trip.userId?.name || 'Local User'}</p>
+                                    <p className="text-[10px] text-white/40 font-black tracking-widest uppercase">{trip.userId?.phoneNumber}</p>
+                                </td>
+                                <td className="px-8 py-6">
+                                    <p className="font-bold text-sm tracking-tight">{trip.driver?.name || 'N/A'}</p>
+                                    <p className="text-[10px] text-white/40 font-black tracking-widest uppercase">{trip.driver?.vehicleNumber || 'No Driver Assigned'}</p>
+                                </td>
+                                <td className="px-8 py-6 max-w-[200px]">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-medium truncate text-white/60">From: {trip.pickupLocation.address}</p>
+                                        <p className="text-xs font-medium truncate text-white/60">To: {trip.destinationLocation.address}</p>
+                                    </div>
+                                </td>
+                                <td className="px-8 py-6"><Currency amount={trip.fare} className="text-accent" iconSize={12} /></td>
+                                <td className="px-8 py-6">
+                                    <span className={`text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${trip.status === 'completed' ? 'bg-green-500/10 text-green-500' :
+                                        trip.status === 'cancelled' ? 'bg-red-500/10 text-red-500' :
+                                            'bg-accent/10 text-accent animate-pulse'
+                                        }`}>
+                                        {trip.refundStatus === 'processed' ? 'Refunded' : trip.status}
+                                    </span>
+                                    <div className="mt-2 flex gap-1">
+                                        {(trip.status !== 'completed' && trip.status !== 'cancelled') && (
+                                            <button onClick={() => handleTripAction(trip._id, 'cancel')} className="text-[8px] bg-red-500/20 text-red-400 py-1 px-2 rounded hover:bg-red-500 hover:text-white uppercase tracking-widest font-black transition">Force Cancel</button>
+                                        )}
+                                        {(trip.status === 'cancelled' && trip.refundStatus !== 'processed') && (
+                                            <button onClick={() => handleTripAction(trip._id, 'refund')} className="text-[8px] bg-blue-500/20 text-blue-400 py-1 px-2 rounded hover:bg-blue-500 hover:text-white uppercase tracking-widest font-black transition">Process Refund</button>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={6} className="px-8 py-20 text-center opacity-20 font-black uppercase tracking-[4px]">No trip history found</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
@@ -607,7 +640,7 @@ function ReportsTab() {
     };
 
     return (
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="col-span-1 space-y-4">
                 <h4 className="text-sm font-black uppercase tracking-widest text-accent mb-4">Unresolved Issues</h4>
                 {reports.filter(r => r.status !== 'resolved').map((r, i) => (
