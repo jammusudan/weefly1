@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Search,
@@ -44,6 +45,7 @@ import { Currency } from "@/components/Currency";
 import { getApiBase } from "@/lib/api";
 
 export default function Home() {
+  const router = useRouter();
   const [pickup, setPickup] = useState("");
   const [destination, setDestination] = useState("");
   const [bookingStep, setBookingStep] = useState(0); // 0: Search, 1: Select, 2: Searching, 3: Assigned
@@ -762,6 +764,10 @@ export default function Home() {
                   <button
                     key={r.id}
                     onClick={() => {
+                      if (r.id === 'admin') {
+                        router.push('/admin');
+                        return;
+                      }
                       if (!isActive) {
                         setUserRole(r.id);
                         setError(null);
